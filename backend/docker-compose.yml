@@ -1,0 +1,135 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ghostworker-api
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://ghostworker:ghostworker@db:5432/ghostworker
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+    env_file:
+      - .env
+    volumes:
+      - ./app:/app/app
+      - ./alembic:/app/alembic
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - ghostworker-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: ghostworker-worker
+    environment:
+      - DATABASE_URL=postgresql://ghostworker:ghostworker@db:5432/ghostworker
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+    env_file:
+      - .env
+    volumes:
+      - ./app:/app/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - ghostworker-network
+
+  beat:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: ghostworker-beat
+    command: celery -A app.core.celery_app beat --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql://ghostworker:ghostworker@db:5432/ghostworker
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+    env_file:
+      - .env
+    volumes:
+      - ./app:/app/app
+    depends_on:
+      - worker
+      - redis
+    restart: unless-stopped
+    networks:
+      - ghostworker-network
+
+  db:
+    image: postgres:15-alpine
+    container_name: ghostworker-db
+    environment:
+      - POSTGRES_USER=ghostworker
+      - POSTGRES_PASSWORD=ghostworker
+      - POSTGRES_DB=ghostworker
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    networks:
+      - ghostworker-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ghostworker -d ghostworker"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: ghostworker-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    networks:
+      - ghostworker-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  flower:
+    image: mher/flower:0.9.7
+    container_name: ghostworker-flower
+    command: celery flower --broker=redis://redis:6379/1 --port=5555
+    ports:
+      - "5555:5555"
+    depends_on:
+      - worker
+      - redis
+    restart: unless-stopped
+    networks:
+      - ghostworker-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  ghostworker-network:
+    driver: bridge
