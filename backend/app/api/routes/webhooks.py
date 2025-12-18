@@ -2,16 +2,58 @@ from fastapi import APIRouter, Request, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Annotated
 from fastapi import Depends
-import hmac
-import hashlib
+import json
 
 from app.db.session import get_db
 from app.models import WebhookEvent
 from app.schemas import WhatsAppWebhook, InstagramWebhook, TikTokWebhook, WebhookResponse
 from app.core.config import settings
+from app.core.webhook_security import (
+    verify_meta_signature, verify_tiktok_signature, verify_n8n_signature
+)
 from app.workers.tasks import process_webhook_task
 
 router = APIRouter()
+
+
+async def _verify_and_store_webhook(
+    request: Request,
+    db: AsyncSession,
+    platform: str
+) -> WebhookEvent:
+    """Verify webhook signature and store event"""
+    payload = await request.body()
+    
+    # Verify signature based on platform
+    if platform in ["whatsapp", "instagram", "facebook"]:
+        signature = request.headers.get("X-Hub-Signature-256", "")
+        if settings.META_APP_SECRET and not verify_meta_signature(payload, signature):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid webhook signature"
+            )
+    
+    elif platform == "tiktok":
+        signature = request.headers.get("X-Tiktok-Signature", "")
+        timestamp = request.headers.get("X-Tiktok-Timestamp", "")
+        if settings.TIKTOK_APP_SECRET and not verify_tiktok_signature(payload, signature, timestamp):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid webhook signature"
+            )
+    
+    # Parse and store
+    payload_json = json.loads(payload.decode())
+    event = WebhookEvent(
+        platform=platform,
+        event_type=payload_json.get("event", "message"),
+        payload=payload_json
+    )
+    db.add(event)
+    await db.commit()
+    await db.refresh(event)
+    
+    return event
 
 
 @router.get("/whatsapp")
@@ -31,22 +73,9 @@ async def whatsapp_webhook(
     request: Request,
     db: Annotated[AsyncSession, Depends(get_db)]
 ):
-    """Handle WhatsApp webhook"""
-    payload = await request.json()
-    
-    # Store webhook event
-    event = WebhookEvent(
-        platform="whatsapp",
-        event_type="message",
-        payload=payload
-    )
-    db.add(event)
-    await db.commit()
-    await db.refresh(event)
-    
-    # Queue for processing
+    """Handle WhatsApp webhook with signature verification"""
+    event = await _verify_and_store_webhook(request, db, "whatsapp")
     process_webhook_task.delay(str(event.id))
-    
     return WebhookResponse(success=True)
 
 
@@ -67,22 +96,9 @@ async def facebook_webhook(
     request: Request,
     db: Annotated[AsyncSession, Depends(get_db)]
 ):
-    """Handle Facebook Messenger webhook"""
-    payload = await request.json()
-    
-    # Store webhook event
-    event = WebhookEvent(
-        platform="facebook",
-        event_type="message",
-        payload=payload
-    )
-    db.add(event)
-    await db.commit()
-    await db.refresh(event)
-    
-    # Queue for processing
+    """Handle Facebook Messenger webhook with signature verification"""
+    event = await _verify_and_store_webhook(request, db, "facebook")
     process_webhook_task.delay(str(event.id))
-    
     return WebhookResponse(success=True)
 
 
@@ -103,22 +119,9 @@ async def instagram_webhook(
     request: Request,
     db: Annotated[AsyncSession, Depends(get_db)]
 ):
-    """Handle Instagram webhook"""
-    payload = await request.json()
-    
-    # Store webhook event
-    event = WebhookEvent(
-        platform="instagram",
-        event_type="message",
-        payload=payload
-    )
-    db.add(event)
-    await db.commit()
-    await db.refresh(event)
-    
-    # Queue for processing
+    """Handle Instagram webhook with signature verification"""
+    event = await _verify_and_store_webhook(request, db, "instagram")
     process_webhook_task.delay(str(event.id))
-    
     return WebhookResponse(success=True)
 
 
@@ -127,20 +130,7 @@ async def tiktok_webhook(
     request: Request,
     db: Annotated[AsyncSession, Depends(get_db)]
 ):
-    """Handle TikTok webhook"""
-    payload = await request.json()
-    
-    # Store webhook event
-    event = WebhookEvent(
-        platform="tiktok",
-        event_type=payload.get("event", "message"),
-        payload=payload
-    )
-    db.add(event)
-    await db.commit()
-    await db.refresh(event)
-    
-    # Queue for processing
+    """Handle TikTok webhook with signature verification"""
+    event = await _verify_and_store_webhook(request, db, "tiktok")
     process_webhook_task.delay(str(event.id))
-    
     return WebhookResponse(success=True)

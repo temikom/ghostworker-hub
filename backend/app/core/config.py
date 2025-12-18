@@ -96,6 +96,12 @@ class Settings(BaseSettings):
     # Sentry
     SENTRY_DSN: str = ""
     
+    # Data Retention (days)
+    MESSAGE_RETENTION_DAYS: int = 365
+    AUDIT_LOG_RETENTION_DAYS: int = 730  # 2 years for compliance
+    WEBHOOK_RETENTION_DAYS: int = 30
+    SESSION_RETENTION_DAYS: int = 30
+    
     class Config:
         env_file = ".env"
         case_sensitive = True

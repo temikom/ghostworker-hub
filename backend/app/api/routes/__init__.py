@@ -2,6 +2,7 @@
 from app.api.routes import (
     auth,
     oauth,
+    sessions,
     users,
     teams,
     inbox,

@@ -64,3 +64,8 @@ slowapi==0.1.9
 # Full-text search
 sqlalchemy-searchable==2.0.0
 sqlalchemy-utils==0.41.1
+
+# Security
+cryptography==42.0.2
+pyotp==2.9.0
+qrcode[pil]==7.4.2

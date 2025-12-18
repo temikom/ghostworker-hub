@@ -22,12 +22,21 @@ class User(Base, UUIDMixin, TimestampMixin):
     is_active = Column(Boolean, default=True)
     is_verified = Column(Boolean, default=False)
     
+    # 2FA fields
+    two_factor_enabled = Column(Boolean, default=False)
+    totp_secret = Column(String(500))  # Encrypted TOTP secret
+    totp_secret_pending = Column(String(500))  # Pending during setup
+    backup_codes = Column(Text)  # Comma-separated backup codes
+    
     # Team relationship
     team_id = Column(UUID(as_uuid=True), ForeignKey("teams.id"), nullable=True)
     team = relationship("Team", back_populates="members")
     
     # Role relationship
     roles = relationship("UserRole", back_populates="user", cascade="all, delete-orphan")
+    
+    # Session relationship
+    sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
     
     # Other relationships
     templates = relationship("Template", back_populates="owner")

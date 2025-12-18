@@ -7,6 +7,7 @@ from app.models.tag import Tag, Template
 from app.models.integration import Integration, WebhookEvent, IntegrationStatus
 from app.models.analytics import AnalyticsSnapshot, Activity
 from app.models.assistant import AssistantTask, AIConversation, Settings, TaskStatus
+from app.models.session import UserSession, AuditLog
 
 __all__ = [
     # User
@@ -50,4 +51,8 @@ __all__ = [
     "AIConversation",
     "Settings",
     "TaskStatus",
+    
+    # Session & Audit
+    "UserSession",
+    "AuditLog",
 ]
