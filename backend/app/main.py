@@ -13,9 +13,9 @@ from app.core.audit import AuditLogMiddleware
 from app.api.routes import (
     auth, users, teams, inbox, conversations, messages,
     customers, orders, tags, templates, analytics,
-    integrations, webhooks, n8n, ai, oauth
+    integrations, webhooks, n8n, ai, oauth, sessions,
+    products, automation, routing, payments, invoices
 )
-from app.api.routes import sessions
 from app.db.session import engine
 from app.db.base import Base
 
@@ -132,6 +132,11 @@ app.include_router(integrations.router, prefix=f"{API_V1_PREFIX}/integrations", 
 app.include_router(webhooks.router, prefix=f"{API_V1_PREFIX}/webhooks", tags=["Webhooks"])
 app.include_router(n8n.router, prefix=f"{API_V1_PREFIX}/n8n", tags=["N8N"])
 app.include_router(ai.router, prefix=f"{API_V1_PREFIX}/ai", tags=["AI"])
+app.include_router(products.router, prefix=f"{API_V1_PREFIX}/products", tags=["Products"])
+app.include_router(automation.router, prefix=f"{API_V1_PREFIX}/automation", tags=["Automation"])
+app.include_router(routing.router, prefix=f"{API_V1_PREFIX}/routing", tags=["Smart Routing"])
+app.include_router(payments.router, prefix=f"{API_V1_PREFIX}/payments", tags=["Payments"])
+app.include_router(invoices.router, prefix=f"{API_V1_PREFIX}/invoices", tags=["Invoices"])
 
 
 @app.get("/")
