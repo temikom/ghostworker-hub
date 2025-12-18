@@ -1,0 +1,193 @@
+version: '3.8'
+
+services:
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: ghostworker-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro  # Mount SSL certs here
+    depends_on:
+      - api
+      - frontend
+    restart: unless-stopped
+    networks:
+      - ghostworker-network
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend
+  frontend:
+    build:
+      context: ../
+      dockerfile: backend/Dockerfile.frontend
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+    container_name: ghostworker-frontend
+    environment:
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
+    restart: unless-stopped
+    networks:
+      - ghostworker-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # API
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ghostworker-api
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-ghostworker}:${POSTGRES_PASSWORD:-ghostworker}@db:5432/${POSTGRES_DB:-ghostworker}
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - SECRET_KEY=${SECRET_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL}
+      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
+      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
+      - TWILIO_PHONE_NUMBER=${TWILIO_PHONE_NUMBER}
+      - ENVIRONMENT=production
+    volumes:
+      - api_uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - ghostworker-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Celery Worker
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: ghostworker-worker
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-ghostworker}:${POSTGRES_PASSWORD:-ghostworker}@db:5432/${POSTGRES_DB:-ghostworker}
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - SECRET_KEY=${SECRET_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL}
+      - ENVIRONMENT=production
+    volumes:
+      - api_uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - ghostworker-network
+    deploy:
+      replicas: 2
+
+  # Celery Beat (scheduler)
+  beat:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: ghostworker-beat
+    command: celery -A app.core.celery_app beat --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-ghostworker}:${POSTGRES_PASSWORD:-ghostworker}@db:5432/${POSTGRES_DB:-ghostworker}
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+    depends_on:
+      - worker
+      - redis
+    restart: unless-stopped
+    networks:
+      - ghostworker-network
+
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: ghostworker-db
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-ghostworker}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-ghostworker}
+      - POSTGRES_DB=${POSTGRES_DB:-ghostworker}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+    networks:
+      - ghostworker-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ghostworker} -d ${POSTGRES_DB:-ghostworker}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: ghostworker-redis
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - ghostworker-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Flower (Celery monitoring) - optional
+  flower:
+    image: mher/flower:2.0
+    container_name: ghostworker-flower
+    command: celery --broker=redis://redis:6379/1 flower --port=5555 --basic_auth=${FLOWER_USER:-admin}:${FLOWER_PASSWORD:-admin}
+    ports:
+      - "5555:5555"
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/1
+    depends_on:
+      - worker
+      - redis
+    restart: unless-stopped
+    networks:
+      - ghostworker-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  api_uploads:
+
+networks:
+  ghostworker-network:
+    driver: bridge

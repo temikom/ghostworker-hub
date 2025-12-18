@@ -1,9 +1,14 @@
-// Configure this to your FastAPI backend URL
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-const API_V1 = `${API_BASE_URL}/api/v1`;
+import { API_CONFIG } from '@/config/api';
+
+// Use API_CONFIG for centralized configuration
+const API_BASE_URL = API_CONFIG.baseUrl;
+const API_V1 = API_CONFIG.apiUrl;
+
+// Session storage key for auth token
+const SESSION_KEY = 'gw_session';
 
 async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const token = sessionStorage.getItem('gw_session');
+  const token = sessionStorage.getItem(SESSION_KEY);
   
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
@@ -11,17 +16,41 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     ...options?.headers,
   };
 
-  const response = await fetch(`${API_V1}${endpoint}`, {
-    ...options,
-    headers,
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.timeout);
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: 'Request failed' }));
-    throw new Error(error.detail || error.message || 'Request failed');
+  try {
+    const response = await fetch(`${API_V1}${endpoint}`, {
+      ...options,
+      headers,
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Request failed' }));
+      
+      // Handle specific error cases
+      if (response.status === 401) {
+        // Token expired or invalid - clear session
+        sessionStorage.removeItem(SESSION_KEY);
+        window.dispatchEvent(new CustomEvent('auth:expired'));
+      }
+      
+      throw new Error(error.detail || error.message || 'Request failed');
+    }
+
+    return response.json();
+  } catch (error) {
+    clearTimeout(timeoutId);
+    
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Request timeout - please try again');
+    }
+    
+    throw error;
   }
-
-  return response.json();
 }
 
 // Re-export types from types/index.ts
