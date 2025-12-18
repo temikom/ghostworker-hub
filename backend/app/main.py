@@ -9,7 +9,7 @@ from app.core.config import settings
 from app.api.routes import (
     auth, users, teams, inbox, conversations, messages,
     customers, orders, tags, templates, analytics,
-    integrations, webhooks, n8n, ai
+    integrations, webhooks, n8n, ai, oauth
 )
 from app.db.session import engine
 from app.db.base import Base
@@ -102,6 +102,7 @@ async def health_check():
 
 # API Routes
 app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
+app.include_router(oauth.router, prefix="/auth", tags=["OAuth"])
 app.include_router(users.router, prefix="/users", tags=["Users"])
 app.include_router(teams.router, prefix="/teams", tags=["Teams"])
 app.include_router(inbox.router, prefix="/inbox", tags=["Inbox"])
@@ -115,6 +116,7 @@ app.include_router(analytics.router, prefix="/analytics", tags=["Analytics"])
 app.include_router(integrations.router, prefix="/integrations", tags=["Integrations"])
 app.include_router(webhooks.router, prefix="/webhooks", tags=["Webhooks"])
 app.include_router(n8n.router, prefix="/n8n", tags=["N8N"])
+app.include_router(ai.router, prefix="/ai", tags=["AI"])
 app.include_router(ai.router, prefix="/ai", tags=["AI"])
 
 
