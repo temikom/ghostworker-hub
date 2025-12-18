@@ -94,7 +94,7 @@ export default function Integrations() {
     }
   };
 
-  const getIntegrationStatus = (platform: Platform): 'connected' | 'disconnected' => {
+  const getIntegrationStatus = (platform: Platform): 'connected' | 'disconnected' | 'error' => {
     const integration = integrations.find((i) => i.platform === platform);
     return integration?.status || 'disconnected';
   };
