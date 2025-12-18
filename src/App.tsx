@@ -2,13 +2,14 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
+import VerifyEmail from "./pages/VerifyEmail";
 import Dashboard from "./pages/Dashboard";
 import Inbox from "./pages/Inbox";
 import Orders from "./pages/Orders";
@@ -23,6 +24,72 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+// Protected route wrapper - requires authentication AND email verification
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading, isVerified } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!isVerified) {
+    return <Navigate to="/verify-email" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+// Auth route wrapper - redirects authenticated users to dashboard
+function AuthRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading, isVerified } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (isAuthenticated && isVerified) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+const AppRoutes = () => (
+  <Routes>
+    <Route path="/" element={<Index />} />
+    <Route path="/login" element={<AuthRoute><Login /></AuthRoute>} />
+    <Route path="/signup" element={<AuthRoute><Signup /></AuthRoute>} />
+    <Route path="/forgot-password" element={<ForgotPassword />} />
+    <Route path="/verify-email" element={<VerifyEmail />} />
+    
+    {/* Protected Routes */}
+    <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+    <Route path="/inbox" element={<ProtectedRoute><Inbox /></ProtectedRoute>} />
+    <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
+    <Route path="/integrations" element={<ProtectedRoute><Integrations /></ProtectedRoute>} />
+    <Route path="/assistant" element={<ProtectedRoute><Assistant /></ProtectedRoute>} />
+    <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+    <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
+    <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
+    <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+    <Route path="/search" element={<ProtectedRoute><Search /></ProtectedRoute>} />
+    
+    <Route path="*" element={<NotFound />} />
+  </Routes>
+);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -31,23 +98,7 @@ const App = () => (
         <Sonner />
         <OnboardingTour />
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/inbox" element={<Inbox />} />
-            <Route path="/orders" element={<Orders />} />
-            <Route path="/integrations" element={<Integrations />} />
-            <Route path="/assistant" element={<Assistant />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/analytics" element={<Analytics />} />
-            <Route path="/customers" element={<Customers />} />
-            <Route path="/notifications" element={<Notifications />} />
-            <Route path="/search" element={<Search />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <AppRoutes />
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
