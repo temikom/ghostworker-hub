@@ -14,6 +14,11 @@ import {
   X,
   Users,
   BarChart3,
+  Brain,
+  Zap,
+  Package,
+  FileText,
+  UsersRound,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -23,8 +28,13 @@ const navItems = [
   { to: '/inbox', icon: Inbox, label: 'Inbox', tour: 'inbox' },
   { to: '/orders', icon: ShoppingBag, label: 'Orders', tour: 'orders' },
   { to: '/customers', icon: Users, label: 'Customers' },
+  { to: '/products', icon: Package, label: 'Products' },
+  { to: '/invoices', icon: FileText, label: 'Invoices' },
   { to: '/analytics', icon: BarChart3, label: 'Analytics' },
+  { to: '/automation', icon: Zap, label: 'Automation' },
+  { to: '/ai-features', icon: Brain, label: 'AI Features' },
   { to: '/integrations', icon: Plug, label: 'Integrations', tour: 'integrations' },
+  { to: '/team', icon: UsersRound, label: 'Team' },
   { to: '/assistant', icon: Bot, label: 'Assistant' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ];

@@ -21,6 +21,11 @@ import Customers from "./pages/Customers";
 import Notifications from "./pages/Notifications";
 import Search from "./pages/Search";
 import NotFound from "./pages/NotFound";
+import AIFeatures from "./pages/AIFeatures";
+import Automation from "./pages/Automation";
+import Products from "./pages/Products";
+import Invoices from "./pages/Invoices";
+import Team from "./pages/Team";
 
 const queryClient = new QueryClient();
 
@@ -85,6 +90,11 @@ const AppRoutes = () => (
     <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
     <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
     <Route path="/search" element={<ProtectedRoute><Search /></ProtectedRoute>} />
+    <Route path="/ai-features" element={<ProtectedRoute><AIFeatures /></ProtectedRoute>} />
+    <Route path="/automation" element={<ProtectedRoute><Automation /></ProtectedRoute>} />
+    <Route path="/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
+    <Route path="/invoices" element={<ProtectedRoute><Invoices /></ProtectedRoute>} />
+    <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
     
     <Route path="*" element={<NotFound />} />
   </Routes>

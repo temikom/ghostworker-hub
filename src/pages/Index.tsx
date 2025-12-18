@@ -194,9 +194,10 @@ export default function Index() {
             <div className="flex items-center gap-2">
               <Ghost className="h-6 w-6 text-primary" />
               <span className="font-semibold text-foreground">GhostWorker</span>
+              <span className="text-sm text-muted-foreground">by Temi Kom</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} GhostWorker. All rights reserved.
+              © {new Date().getFullYear()} Temi Kom. All rights reserved.
             </p>
           </div>
         </div>
