@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     SECRET_KEY: str = "change-this-secret-key"
     API_V1_PREFIX: str = "/api/v1"
+    API_BASE_URL: str = "http://localhost:8000"
     
     # Server
     HOST: str = "0.0.0.0"
@@ -44,10 +45,26 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""
     OPENAI_MODEL: str = "gpt-4o-mini"
     
+    # OAuth - Google
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    
+    # OAuth - Microsoft
+    MICROSOFT_CLIENT_ID: str = ""
+    MICROSOFT_CLIENT_SECRET: str = ""
+    
+    # OAuth - Facebook
+    FACEBOOK_APP_ID: str = ""
+    FACEBOOK_APP_SECRET: str = ""
+    
     # WhatsApp (Twilio)
     TWILIO_ACCOUNT_SID: str = ""
     TWILIO_AUTH_TOKEN: str = ""
     TWILIO_WHATSAPP_NUMBER: str = ""
+    
+    # Facebook Messenger
+    FACEBOOK_PAGE_ACCESS_TOKEN: str = ""
+    FACEBOOK_VERIFY_TOKEN: str = ""
     
     # Instagram (Meta Graph API)
     META_APP_ID: str = ""

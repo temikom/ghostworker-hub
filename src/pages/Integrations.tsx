@@ -15,7 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Integration, integrationsApi } from '@/lib/api';
 import { toast } from 'sonner';
 
-type Platform = 'whatsapp' | 'instagram' | 'tiktok' | 'email';
+type Platform = 'whatsapp' | 'instagram' | 'tiktok' | 'email' | 'facebook';
 
 interface IntegrationConfig {
   platform: Platform;
@@ -41,6 +41,16 @@ const integrationConfigs: IntegrationConfig[] = [
     description: 'Connect your Instagram Business account',
     fields: [
       { name: 'access_token', label: 'Access Token', type: 'password', placeholder: 'Enter Access Token' },
+    ],
+  },
+  {
+    platform: 'facebook',
+    title: 'Facebook Messenger',
+    description: 'Connect your Facebook Page for Messenger',
+    fields: [
+      { name: 'page_id', label: 'Page ID', type: 'text', placeholder: 'Enter Page ID' },
+      { name: 'access_token', label: 'Page Access Token', type: 'password', placeholder: 'Enter Page Access Token' },
+      { name: 'verify_token', label: 'Verify Token', type: 'text', placeholder: 'Enter Verify Token' },
     ],
   },
   {
@@ -92,6 +102,13 @@ export default function Integrations() {
   const handleConnect = async () => {
     if (!selectedPlatform) return;
 
+    // Validate all fields are filled
+    const missingFields = selectedPlatform.fields.filter(f => !credentials[f.name]?.trim());
+    if (missingFields.length > 0) {
+      toast.error(`Please fill in all required fields`);
+      return;
+    }
+
     setIsLoading(true);
     try {
       await integrationsApi.connect({
@@ -127,7 +144,7 @@ export default function Integrations() {
           <p className="text-muted-foreground">Connect your messaging platforms</p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {integrationConfigs.map((config) => {
             const status = getIntegrationStatus(config.platform);
             const isConnected = status === 'connected';

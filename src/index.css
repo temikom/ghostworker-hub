@@ -54,6 +54,11 @@
     --instagram: 340 75% 55%;
     --tiktok: 0 0% 10%;
     --email: 205 100% 50%;
+    --facebook: 221 44% 41%;
+    
+    /* Social auth colors */
+    --google: 4 90% 58%;
+    --microsoft: 207 89% 42%;
   }
 
   .dark {

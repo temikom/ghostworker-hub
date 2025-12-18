@@ -9,7 +9,7 @@ from app.db.session import get_db
 from app.models import WebhookEvent
 from app.schemas import WhatsAppWebhook, InstagramWebhook, TikTokWebhook, WebhookResponse
 from app.core.config import settings
-from app.workers.tasks.webhook_tasks import process_webhook_task
+from app.workers.tasks import process_webhook_task
 
 router = APIRouter()
 
@@ -37,6 +37,42 @@ async def whatsapp_webhook(
     # Store webhook event
     event = WebhookEvent(
         platform="whatsapp",
+        event_type="message",
+        payload=payload
+    )
+    db.add(event)
+    await db.commit()
+    await db.refresh(event)
+    
+    # Queue for processing
+    process_webhook_task.delay(str(event.id))
+    
+    return WebhookResponse(success=True)
+
+
+@router.get("/facebook")
+async def verify_facebook_webhook(
+    mode: str = None,
+    challenge: str = None,
+    verify_token: str = None
+):
+    """Verify Facebook Messenger webhook"""
+    if mode == "subscribe" and verify_token == settings.FACEBOOK_VERIFY_TOKEN:
+        return int(challenge)
+    raise HTTPException(status_code=403, detail="Verification failed")
+
+
+@router.post("/facebook", response_model=WebhookResponse)
+async def facebook_webhook(
+    request: Request,
+    db: Annotated[AsyncSession, Depends(get_db)]
+):
+    """Handle Facebook Messenger webhook"""
+    payload = await request.json()
+    
+    # Store webhook event
+    event = WebhookEvent(
+        platform="facebook",
         event_type="message",
         payload=payload
     )

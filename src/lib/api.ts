@@ -103,7 +103,7 @@ export interface User {
 export interface Conversation {
   id: string;
   customer_name: string;
-  platform: 'whatsapp' | 'instagram' | 'tiktok' | 'email';
+  platform: 'whatsapp' | 'instagram' | 'tiktok' | 'email' | 'facebook';
   last_message: string;
   last_message_time: string;
   unread_count: number;
@@ -114,16 +114,17 @@ export interface Message {
   conversation_id: string;
   content: string;
   sender: 'customer' | 'business';
-  platform: 'whatsapp' | 'instagram' | 'tiktok' | 'email';
+  platform: 'whatsapp' | 'instagram' | 'tiktok' | 'email' | 'facebook';
   timestamp: string;
 }
 
 export interface Integration {
   id: string;
-  platform: 'whatsapp' | 'instagram' | 'tiktok' | 'email';
+  platform: 'whatsapp' | 'instagram' | 'tiktok' | 'email' | 'facebook';
   status: 'connected' | 'disconnected';
   connected_at?: string;
 }
+
 
 export interface Order {
   id: string;

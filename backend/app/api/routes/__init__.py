@@ -1,6 +1,7 @@
 # Export all routers
 from app.api.routes import (
     auth,
+    oauth,
     users,
     teams,
     inbox,
