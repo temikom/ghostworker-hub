@@ -8,6 +8,12 @@ from app.models.integration import Integration, WebhookEvent, IntegrationStatus
 from app.models.analytics import AnalyticsSnapshot, Activity
 from app.models.assistant import AssistantTask, AIConversation, Settings, TaskStatus
 from app.models.session import UserSession, AuditLog
+from app.models.product import Product, OrderItem
+from app.models.invoice import Invoice, InvoiceItem, InvoiceStatus
+from app.models.payment import Payment, PaymentConfig, PaymentStatus
+from app.models.workflow import Workflow, WorkflowRun, ChatbotFlow, ScheduledMessage, AutoResponder, ScheduledMessageStatus
+from app.models.ai_features import VoiceTranscription, SmartRoutingRule, SentimentAnalysis, Translation, SentimentLabel
+from app.models.notification import NotificationSettings, OrderNotification, NotificationChannel
 
 __all__ = [
     # User
@@ -33,6 +39,20 @@ __all__ = [
     "OrderTimeline",
     "OrderStatus",
     
+    # Product
+    "Product",
+    "OrderItem",
+    
+    # Invoice
+    "Invoice",
+    "InvoiceItem",
+    "InvoiceStatus",
+    
+    # Payment
+    "Payment",
+    "PaymentConfig",
+    "PaymentStatus",
+    
     # Tag & Template
     "Tag",
     "Template",
@@ -55,4 +75,24 @@ __all__ = [
     # Session & Audit
     "UserSession",
     "AuditLog",
+    
+    # Workflow & Automation
+    "Workflow",
+    "WorkflowRun",
+    "ChatbotFlow",
+    "ScheduledMessage",
+    "AutoResponder",
+    "ScheduledMessageStatus",
+    
+    # AI Features
+    "VoiceTranscription",
+    "SmartRoutingRule",
+    "SentimentAnalysis",
+    "Translation",
+    "SentimentLabel",
+    
+    # Notifications
+    "NotificationSettings",
+    "OrderNotification",
+    "NotificationChannel",
 ]
