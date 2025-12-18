@@ -44,3 +44,8 @@ from app.schemas.webhook import (
     N8NTriggerRequest, N8NTriggerResponse, N8NWorkflow, N8NWorkflowList, N8NWebhookPayload,
     WhatsAppWebhook, InstagramWebhook, TikTokWebhook, WebhookResponse
 )
+from app.schemas.session import (
+    Setup2FAResponse, Verify2FARequest, Verify2FAResponse, Login2FARequest,
+    SessionResponse, SessionListResponse, RevokeSessionRequest, RevokeAllSessionsRequest,
+    AuditLogResponse, AuditLogListResponse
+)
