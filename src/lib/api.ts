@@ -1,8 +1,9 @@
 // Configure this to your FastAPI backend URL
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_V1 = `${API_BASE_URL}/api/v1`;
 
 async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const token = localStorage.getItem('token');
+  const token = sessionStorage.getItem('gw_session');
   
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
@@ -10,34 +11,73 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     ...options?.headers,
   };
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  const response = await fetch(`${API_V1}${endpoint}`, {
     ...options,
     headers,
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Request failed' }));
-    throw new Error(error.message || 'Request failed');
+    const error = await response.json().catch(() => ({ detail: 'Request failed' }));
+    throw new Error(error.detail || error.message || 'Request failed');
   }
 
   return response.json();
 }
 
+// Auth API Response Types
+interface LoginResponse {
+  token?: string;
+  user?: User;
+  requires_2fa?: boolean;
+  temp_token?: string;
+  requires_verification?: boolean;
+}
+
+interface RegisterResponse {
+  token?: string;
+  user?: User;
+  requires_verification?: boolean;
+}
+
 // Auth API
 export const authApi = {
   register: (data: { email: string; password: string; name: string }) =>
-    request<{ token: string; user: User }>('/auth/register', {
+    request<RegisterResponse>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
   
   login: (data: { email: string; password: string }) =>
-    request<{ token: string; user: User }>('/auth/login', {
+    request<LoginResponse>('/auth/login', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
   
   me: () => request<User>('/auth/me'),
+
+  checkEmail: (data: { email: string }) =>
+    request<{ exists: boolean }>('/auth/check-email', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  verify2FA: (data: { temp_token: string; code: string }) =>
+    request<{ token: string; user: User }>('/auth/2fa/login', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  verifyEmail: (data: { token: string }) =>
+    request<{ token: string; user: User }>('/auth/verify-email', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  resendVerification: (data: { email: string }) =>
+    request<{ message: string }>('/auth/resend-verification', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 };
 
 // Conversations API
@@ -96,8 +136,11 @@ export const assistantApi = {
 // Types
 export interface User {
   id: string;
-  email: string;
+  email?: string;
   name: string;
+  avatar_url?: string;
+  is_verified?: boolean;
+  two_factor_enabled?: boolean;
 }
 
 export interface Conversation {
